@@ -2,7 +2,7 @@ name: Run Python script
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '30 21 * * *'
   workflow_dispatch:
     inputs:
       unconditional-invoking:
