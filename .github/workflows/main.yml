@@ -1,17 +1,10 @@
-   name: Run Python script
+name: Run Python script
 
-on:
+   on:
   schedule:
-    - cron: '7 1,5,10,14,17,22 * * *'
-  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs
-  workflow_dispatch:
-    inputs:
-      unconditional-invoking:
-        description: 'Invoke API unconditionally'
-        type: boolean
-        required: true
-        default: true
-
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '30 5,17 * * *'
+    
    jobs:
      build:
        runs-on: ubuntu-latest
@@ -31,4 +24,4 @@ on:
            pip install requests
 
        - name: Run script
-         run: python 邮箱.py
+         run: python main.py
