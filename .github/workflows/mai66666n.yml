@@ -4,13 +4,6 @@ on:
   schedule:
     - cron: '7 1,5,10,14,17,22 * * *'
   # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs
-  workflow_dispatch:
-    inputs:
-      unconditional-invoking:
-        description: 'Invoke API unconditionally'
-        type: boolean
-        required: true
-        default: true
 
 # https://github.com/actions/checkout/issues/19
 jobs:
