@@ -1,6 +1,6 @@
    name: Run Python script
 
-   on:on:
+on:
   schedule:
     - cron: '7 1,5,10,14,17,22 * * *'
   # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#providing-inputs
