@@ -1,97 +1,123 @@
 import requests
-from datetime import date
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import json
+# 获取天气数据
+def get_weather():
+    response = requests.get('https://api.vvhan.com/api/weather?city=%E6%88%90%E9%83%BD')
+    content = response.text
 
-# 获取当前日期
-today = date.today().strftime("%Y-%m-%d")
+    # 解析JSON字符串
+    data = json.loads(content)
 
-# GitHub API的URL
-url = f"https://api.github.com/search/repositories?q=created:{today}&sort=stars&order=desc"
+    # 提取中文内容
+    city = data['city']
+    week = data['info']['week']
+    type = data['info']['type']
+    low = data['info']['low']
+    high = data['info']['high']
+    fengxiang = data['info']['fengxiang']
+    fengli = data['info']['fengli']
+    night_type = data['info']['night']['type']
+    night_fengxiang = data['info']['night']['fengxiang']
+    night_fengli = data['info']['night']['fengli']
+    tip = data['info']['tip']
 
-# 发送GET请求获取数据
-response = requests.get(url)
+    return f'城市: {city}<br>星期：{week}<br>天气类型:{type}<br>最低温度:{low}<br>最高温度:{high}<br>风向:{fengxiang}<br>风力:{fengli}<br>夜间天气类型:{night_type}<br>夜间风向:{night_fengxiang}<br>夜间风力:{night_fengli}<br>提示:{tip}<br>'
 
-# 邮件内容
-mail_content = ""
+def get_hitokoto():
+    # 使用一言网站的API获取一言
+    url = 'https://v1.hitokoto.cn/'
+    response = requests.get(url)
+    hitokoto_data = response.json()
 
-if response.status_code == 200:
+    return hitokoto_data['hitokoto']
+
+
+def get_history_data():
+    # 替换为你的API请求URL
+    url = 'https://api.oioweb.cn/api/common/history'
+    response = requests.get(url)
+
+    # 解析API响应
     data = response.json()
-    # 获取前100个星星最多的项目
-    top_projects = data["items"][:100]
 
-    # 创建分类字典
-    categories = {}
+    # 提取所有字段值
+    results = data["result"]
+    history_list = []
+    for result in results:
+        year = result["year"]
+        title = result["title"]
+        history_list.append(f'时间：{year}<br>事件：{title}<br>')  # 使用HTML标签<br>来表示换行
 
-    # 打印项目信息
-    for project in top_projects:
-        name = project["name"]
-        stars = project["stargazers_count"]
-        url = project["html_url"]
-        language = project["language"]
+    return ''.join(history_list)
 
-        # 将项目按照语言分类
-        if language in categories:
-            categories[language].append((name, url))
-        else:
-            categories[language] = [(name, url)]
+# 发送邮件
+def get_api_data():
+    url = 'https://api.vvhan.com/api/en'
+    response = requests.get(url)
+    data = response.json()
+    return data
 
-    # 打印10个分类
-    count = 0
-    for language, projects in categories.items():
-        if count >= 10:
-            break
-        mail_content += f"<h2>语言分类：{language}</h2>"
-        mail_content += "<p>类似的项目：</p>"
-        for project in projects:
-            mail_content += f"<p>项目名称：{project[0]}，地址：<a href='{project[1]}'>{project[1]}</a></p>"
-        count += 1
+def tp(text):
+    api_data = get_api_data()
+    zh_text = api_data['data']['zh']
+    en_text = api_data['data']['en']
+    pic_text = api_data['data']['pic']
 
-    # 打印10个不同的项目
-    mail_content += "<h2>其他项目：</h2>"
-    unique_projects = set()
-    for project in top_projects:
-        name = project["name"]
-        url = project["html_url"]
-        if name not in unique_projects:
-            mail_content += f"<p>项目名称：{name}，地址：<a href='{url}'>{url}</a></p>"
-            unique_projects.add(name)
+    msg = MIMEMultipart()
+    html = f"""
+        <html>
+            <body>
+                <p>{text}</p>
+                 <h1>今日励志语录</h1>
+                <p>中文：{zh_text}</p>
+                <p>英文：{en_text}</p>
+                <img src="{pic_text}" alt="图片">
+                <h1>今日二次元图片</h1>
+                <img src="https://api.vvhan.com/api/acgimg" alt="图片">
+                <h1>今日风景元图片</h1>
+                <img src="https://api.vvhan.com/api/view" alt="图片">
+                <h1>60秒读懂世界</h1>
+                <img src="https://api.vvhan.com/api/60s" alt="图片">
+            </body>
+        </html>
+        """
+    msg.attach(MIMEText(html, 'html'))
+    return msg
+def send_email():
+    sender_email = '3545184062@qq.com'
+    sender_password = 'cvgdfvcxtmawdaij'
+    receiver_email = '827737456@qq.com'
+    smtp_server = 'smtp.qq.com'
+    smtp_port = 587
 
-else:
-    mail_content = "无法获取数据"
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = 'FY云自动推送'
 
-# QQ 邮箱 SMTP 服务器地址
-mail_host = "smtp.qq.com"
+    # 获取天气数据
+    weather = get_weather()
 
-# 发件人邮箱
-mail_sender = "3545184062@qq.com"
+    # 添加文本内容
+    hitokoto = get_hitokoto()
+    ls = get_history_data()
+    text = f'今日{weather}<br><br>一言：{hitokoto}<br><br>历史上的今天：<br>{ls}<br>'
+    msg.attach(MIMEText(text, 'plain'))
+    msg.attach(tp(text))
 
-# 邮箱授权码，不是邮箱密码
-mail_license = "cvgdfvcxtmawdaij"
+    # 发送邮件
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+        server.quit()
+        print('邮件发送成功！')
+    except Exception as e:
+        print('邮件发送失败！错误信息：', str(e))
 
-# 收件人邮箱
-mail_receivers = ["827737456@qq.com"]
 
-# 邮件标题
-mail_title = "GitHub 项目信息"
-
-# 创建一个 MIMEMultipart 对象，包含邮件内容和标题
-msg = MIMEMultipart('alternative')
-msg['From'] = mail_sender
-msg['From'] = mail_sender
-msg['To'] = mail_receivers[0]
-msg['Subject'] = mail_title
-
-# 添加邮件正文（HTML 格式）
-mail_content = mail_content.replace('\n', '<br>')  # 将换行符替换为HTML换行标签
-html_content = f"<html><body>{mail_content}</body></html>"
-msg.attach(MIMEText(html_content, 'html'))
-
-try:
-    smtpObj = smtplib.SMTP_SSL(mail_host, 465)  # 启用 SSL，端口号为 465
-    smtpObj.login(mail_sender, mail_license)  # 登录 QQ 邮箱
-    smtpObj.sendmail(mail_sender, mail_receivers, msg.as_string())  # 发送邮件
-    print("邮件发送成功")
-except smtplib.SMTPException:
-    print("Error: 无法发送邮件")
+send_email()
