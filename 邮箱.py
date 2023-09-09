@@ -1,8 +1,8 @@
 import requests
 from datetime import date
 import smtplib
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.header import Header
 
 # 获取当前日期
 today = date.today().strftime("%Y-%m-%d")
@@ -42,20 +42,20 @@ if response.status_code == 200:
     for language, projects in categories.items():
         if count >= 10:
             break
-        mail_content += f"\n语言分类：{language}\n"
-        mail_content += "类似的项目：\n"
+        mail_content += f"<h2>语言分类：{language}</h2>"
+        mail_content += "<p>类似的项目：</p>"
         for project in projects:
-            mail_content += f"项目名称：{project[0]}，地址：{project[1]}\n"
+            mail_content += f"<p>项目名称：{project[0]}，地址：<a href='{project[1]}'>{project[1]}</a></p>"
         count += 1
 
     # 打印10个不同的项目
-    mail_content += "\n其他项目：\n"
+    mail_content += "<h2>其他项目：</h2>"
     unique_projects = set()
     for project in top_projects:
         name = project["name"]
         url = project["html_url"]
         if name not in unique_projects:
-            mail_content += f"项目名称：{name}，地址：{url}\n"
+            mail_content += f"<p>项目名称：{name}，地址：<a href='{url}'>{url}</a></p>"
             unique_projects.add(name)
 
 else:
@@ -76,16 +76,22 @@ mail_receivers = ["827737456@qq.com"]
 # 邮件标题
 mail_title = "GitHub 项目信息"
 
-# 创建一个 MIMEText 对象，包含邮件内容和标题
-message = MIMEText(mail_content, "plain", "utf-8")
-message["From"] = Header(mail_sender)
-message["To"] = Header(mail_receivers[0])
-message["Subject"] = Header(mail_title)
+# 创建一个 MIMEMultipart 对象，包含邮件内容和标题
+msg = MIMEMultipart('alternative')
+msg['From'] = mail_sender
+msg['From'] = mail_sender
+msg['To'] = mail_receivers[0]
+msg['Subject'] = mail_title
+
+# 添加邮件正文（HTML 格式）
+mail_content = mail_content.replace('\n', '<br>')  # 将换行符替换为HTML换行标签
+html_content = f"<html><body>{mail_content}</body></html>"
+msg.attach(MIMEText(html_content, 'html'))
 
 try:
     smtpObj = smtplib.SMTP_SSL(mail_host, 465)  # 启用 SSL，端口号为 465
     smtpObj.login(mail_sender, mail_license)  # 登录 QQ 邮箱
-    smtpObj.sendmail(mail_sender, mail_receivers, message.as_string())  # 发送邮件
+    smtpObj.sendmail(mail_sender, mail_receivers, msg.as_string())  # 发送邮件
     print("邮件发送成功")
 except smtplib.SMTPException:
     print("Error: 无法发送邮件")
