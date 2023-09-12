@@ -89,13 +89,13 @@ def tp(text):
 def send_email():
     sender_email = '3545184062@qq.com'
     sender_password = 'cvgdfvcxtmawdaij'
-    receiver_email = '827737456@qq.com'
+    receiver_email = ['827737456@qq.com', '1462495056@qq.com']
     smtp_server = 'smtp.qq.com'
     smtp_port = 587
 
     msg = MIMEMultipart()
     msg['From'] = sender_email
-    msg['To'] = receiver_email
+    msg['To'] = ', '.join(receiver_email)
     msg['Subject'] = 'FY云自动推送'
 
     # 获取天气数据
