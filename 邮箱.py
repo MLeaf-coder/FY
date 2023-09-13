@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 import json
 # 获取天气数据
 def get_weather():
-    response = requests.get('https://api.vvhan.com/api/weather?city=%E6%88%90%E9%83%BD')
+    response = requests.get('https://api.vvhan.com/api/weather?city=%E7%9C%89%E5%B1%B1&type=week')
     content = response.text
 
     # 解析JSON字符串
