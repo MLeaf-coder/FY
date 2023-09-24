@@ -3,9 +3,46 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
-# 获取天气数据
+# 获取项目数据
+def get_trending_repositories():
+    url = 'https://api.github.com/search/repositories'
+    params = {
+        'q': 'created:>={date}'.format(date='2022-01-01'),
+        'sort': 'stars',
+        'order': 'desc',
+        'per_page': 100
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    repositories = data['items']
+    return repositories
+
+def classify_repositories(repositories):
+    languages = {}
+    for repository in repositories:
+        language = repository['language']
+        if language:
+            if language in languages:
+                languages[language].append(repository)
+            else:
+                languages[language] = [repository]
+    return languages
+
+def get_trending_repositories_html(languages):
+    html = ''
+    for language, repositories in languages.items():
+        html += f'<h3>编程语言: {language}</h3>'
+        for repository in repositories:
+            html += f'<p>项目名称: {repository["name"]}, 星星数: {repository["stargazers_count"]}, 分支数: {repository["forks_count"]}</p>'
+            html += f'<p>项目地址: <a href="{repository["html_url"]}">{repository["html_url"]}</a></p>'
+    return html
+
+repositories = get_trending_repositories()
+languages = classify_repositories(repositories)
+trending_repositories_html = get_trending_repositories_html(languages)
+
 def get_weather():
-    response = requests.get('https://api.vvhan.com/api/weather?city=%E7%9C%89%E5%B1%B1')
+    response = requests.get('https://api.vvhan.com/api/weather?city=%E6%88%90%E9%83%BD')
     content = response.text
 
     # 解析JSON字符串
@@ -33,6 +70,15 @@ def get_hitokoto():
     hitokoto_data = response.json()
 
     return hitokoto_data['hitokoto']
+
+def get_domain_message():
+    response = requests.get(url)
+    data = response.json()
+    domain = data['domain']
+    message = data['message']
+    result = "域名: " + domain + "<br>消息: " + message
+    return result
+url = "https://api.vvhan.com/api/dm?url=fengyegf.com"
 
 
 def get_history_data():
@@ -81,6 +127,10 @@ def tp(text):
                 <img src="https://api.vvhan.com/api/view" alt="图片">
                 <h1>60秒读懂世界</h1>
                 <img src="https://api.vvhan.com/api/60s" alt="图片">
+                <h1>摸鱼人日历</h1>
+                <img src="https://api.vvhan.com/api/moyu" alt="图片">
+                <h1>今日GitHub热门项目</h1>
+                {trending_repositories_html}
             </body>
         </html>
         """
@@ -104,7 +154,8 @@ def send_email():
     # 添加文本内容
     hitokoto = get_hitokoto()
     ls = get_history_data()
-    text = f'今日{weather}<br><br>一言：{hitokoto}<br><br>历史上的今天：<br>{ls}<br>'
+    YM = get_domain_message()
+    text = f'今日{weather}<br><br>一言：{hitokoto}<br><br>历史上的今天：<br>{ls}<br>FY官方域名状态：<br>{YM}<br>'
     msg.attach(MIMEText(text, 'plain'))
     msg.attach(tp(text))
 
